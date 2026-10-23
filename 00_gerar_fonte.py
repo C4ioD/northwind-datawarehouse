@@ -64,3 +64,53 @@ employees = pd.DataFrame({
     "LastName": ["Davolio", "Fuller", "Leverling", "Peacock", "Buchanan"],
     "FirstName": ["Nancy", "Andrew", "Janet", "Margaret", "Steven"]
 })
+
+orders = []
+details = []
+oid = 10248
+
+for _ in range(200):
+    cust = random.choice(cust_ids)
+    emp = random.randint(1,5)
+    d = dt.date(2023,1,1) + dt.timedelta(days=random.randint(0,540))
+
+    # random.random() gera numero aleatorios de 0.0 a 1.0
+    # <0.03  gera ~3% de erro
+    #isoformat() transforma a data em uma string format 'AAAA-MM-DD'
+    order_date = None if random.random() < 0.03 else d.isoformat() # Operador ternario é só uma forma resumida de escrever if/else
+
+    #ramdom.uniform gera um numero decimal aleatorio entre intervalos
+    orders.append((oid, cust, emp, order_date, round(random.uniform(0, 60), 1)))
+
+    for _ in range(random.randint(1,4)):
+        pid = random.randint(1,20)
+        up =  round(float(products.loc[products.ProductID == pid, "UnitPrice"].iloc[0]),1)
+        qty = random.randint(1,40)
+        disc = random.choice([0, 0, 0, 0.05, 0.1, 0.15, 0.25])
+        #sujeira de ~2%  de quantidades negativas
+        if random.random() < 0.02:
+            qty = -qty
+        details.append((oid,pid,up,qty,disc))
+         #sujeira de ~2% de linhas duplicadas
+        if  random.random() < 0.02:
+            details.append((oid,pid,up,qty,disc))
+    oid += 1
+
+orders = pd.DataFrame(orders, columns=["OrderID", "CustomerID", "EmployeeID", "OrderDate", "Freight"])
+order_details = pd.DataFrame(details, columns=["OrderID", "ProductID", "UnitPrice", "Quantity", "Discount"])
+
+tables = {
+
+    "categories": categories, "suppliers": suppliers, "products": products,
+    "customers": customers, "employees": employees,
+    "orders": orders, "order_details": order_details,
+
+}
+
+for name, df  in tables.items():
+    df.to_sql(name,con,if_exists="replace", index=False)
+
+con.commit()
+con.close()
+print("Banco criado em data/northwind.db")
+print(f"Pedidos: {len(orders)} | Itens: {len(order_details)}")
